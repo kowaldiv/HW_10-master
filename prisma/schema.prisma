@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  authorId  Int?     @map("author_id")
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  users     User?    @relation(fields: [authorId], references: [id], onUpdate: NoAction, map: "comments_author_id_foreign")
+  posts     Post     @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "comments_post_id_foreign")
+
+  @@map("comments")
+}
+
+model PostTag {
+  postId Int  @map("post_id")
+  tagId  Int  @map("tag_id")
+  posts  Post @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "post_tags_post_id_foreign")
+  tags   Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "post_tags_tag_id_foreign")
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+model Post {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  title     String    @db.VarChar(300)
+  body      String
+  status    String    @db.VarChar(20)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  comments  Comment[]
+  post_tags PostTag[]
+  users     User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "posts_user_id_foreign")
+
+  @@map("posts")
+}
+
+model Tag {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique(map: "tags_name_unique") @db.VarChar(50)
+  postTags PostTag[]
+
+  @@map("tags")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique(map: "users_email_unique") @db.VarChar(255)
+  name      String    @db.VarChar(100)
+  role      String?   @default("user")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  comments  Comment[]
+  posts     Post[]
+
+  @@map("users")
+}
